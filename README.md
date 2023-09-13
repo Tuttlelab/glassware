@@ -42,3 +42,84 @@ peptideutils.charge("AKRDF")
 # to add
 parsepsf
 MDAnalysis centering
+
+
+# Other functions
+
+#### Calculate angle from 3 cartesian coordinates
+```python
+import numpy as np
+def angle(pointA, pointB, pointC):
+    x1x2s = np.power((pointA[0] - pointB[0]),2)
+    x1x3s = np.power((pointA[0] - pointC[0]),2)
+    x2x3s = np.power((pointB[0] - pointC[0]),2)
+    
+    y1y2s = np.power((pointA[1] - pointB[1]),2)
+    y1y3s = np.power((pointA[1] - pointC[1]),2)
+    y2y3s = np.power((pointB[1] - pointC[1]),2)
+
+    cosine_angle = np.arccos((x1x2s + y1y2s + x2x3s + y2y3s - x1x3s - y1y3s)/(2*np.sqrt(x1x2s + y1y2s)*np.sqrt(x2x3s + y2y3s)))
+
+    return np.degrees(cosine_angle)
+
+#check angle function
+x = np.array([[  -5.63164 ,      -1.44837   ,     0.00000],
+    [  -4.38630    ,    2.49963   ,    -0.00000],
+    [     -2.60073  ,     -1.04151   ,     0.00000]])
+if round(angle(*x), 1) != 44.3:
+    print("Angle function broken")
+    sys.exit()
+    
+```
+
+
+#### Calculate dihedral from 3 cartesian coordinates
+### 
+```python
+import numpy as np
+def new_dihedral(p0, p1, p2, p3):
+    """Praxeolitic formula
+    1 sqrt, 1 cross product
+    https://localcoder.org/dihedral-torsion-angle-from-four-points-in-cartesian-coordinates-in-python"""
+
+    b0 = -1.0*(p1 - p0)
+    b1 = p2 - p1
+    b2 = p3 - p2
+
+    # normalize b1 so that it does not influence magnitude of vector
+    # rejections that come next
+    b1 /= np.linalg.norm(b1)
+
+    # vector rejections
+    # v = projection of b0 onto plane perpendicular to b1
+    #   = b0 minus component that aligns with b1
+    # w = projection of b2 onto plane perpendicular to b1
+    #   = b2 minus component that aligns with b1
+    v = b0 - np.dot(b0, b1)*b1
+    w = b2 - np.dot(b2, b1)*b1
+
+    # angle between v and w in a plane is the torsion angle
+    # v and w may not be normalized but that's fine since tan is y/x
+    x = np.dot(v, w)
+    y = np.dot(np.cross(b1, v), w)
+    return np.degrees(np.arctan2(y, x))
+```
+
+#### Other
+
+```python
+def readin(fname):
+    f = open(fname, 'r')
+    content = f.read()
+    return content
+```
+
+```python
+import re
+def natural_sort(l): 
+    convert = lambda text: int(text) if text.isdigit() else text.lower()
+    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+    return sorted(l, key=alphanum_key)
+```
+
+

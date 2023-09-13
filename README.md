@@ -105,6 +105,27 @@ def new_dihedral(p0, p1, p2, p3):
     return np.degrees(np.arctan2(y, x))
 ```
 
+#### Centering a PBC system in MDAnalysis by an atom_group
+```python
+def center(self):
+    for i in range(500):
+        self.All.wrap()
+        #BoxCOG = All.positions.mean(axis=0)
+        BoxCOG = self.U.dimensions[:3]/2
+        self.proteinCOG = self.HYF_central_layer.center_of_geometry()
+        drift = self.proteinCOG - BoxCOG
+        self.All.positions = self.All.positions - drift
+        if np.abs(drift).sum() < 0.1:
+            #print(W, i, "Converged")
+            break
+        if i >= 499:
+            print("Centering did not converge!")
+            sys.exit()
+    self.All.wrap()
+    self.HYF_allatoms.wrap()
+```
+
+
 #### Other
 
 ```python

@@ -1,0 +1,3 @@
+[submodule "HPC_submission_tools"]
+	path = HPC_submission_tools
+	url = https://github.com/RossJamesUrquhart/HPC_submission_tools

@@ -1,3 +1,6 @@
 [submodule "HPC_submission_tools"]
 	path = HPC_submission_tools
 	url = https://github.com/RossJamesUrquhart/HPC_submission_tools
+[submodule "ORCA-Parser"]
+	path = ORCA-Parser
+	url = https://github.com/avanteijlingen/ORCA-Parser

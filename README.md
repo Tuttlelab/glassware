@@ -143,4 +143,21 @@ def natural_sort(l):
     return sorted(l, key=alphanum_key)
 ```
 
+# TCL
+This section to be flushed out.
+```tcl
+package require pbctools
+package require hbonds 
+
+pbc readxst cphmd_out.xst -molid top -all
+animate write dcd wrapped.dcd beg 0 end -1 skip 10 waitfor all
+
+mol addfile AAAADEMC_80.pdb type pdb
+mol delrep  0 top
+
+
+set Bilayer [atomselect top "resname POPC POPS"]
+
+hbonds -sel1 $prot -sel2 $wat -writefile yes -plot no -outdir ./ -outfile hbonds_PW.dat -polar yes 
+```
 

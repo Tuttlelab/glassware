@@ -1,5 +1,5 @@
 # Tuttlelab/glassware
-## A repo for frequently used code snippets
+## A repo for frequently used code snippets to help settle new undergrads and MSc students in our lab.
 
 They can all be installed at once by running:
 ```bash
@@ -42,7 +42,142 @@ peptideutils.charge("AKRDF")
 # to add
 parsepsf
 
+# Gromacs tools
 
+## Parse and ITP file into several pandas DataFrames, does not currently consider dihedrals
+```python
+def parse_itp(fname):
+    text = readin(fname)
+    
+    section = text.split("[ atoms ]")[1].split("[ bonds ]")[0]
+    ATOMS = pandas.DataFrame(columns=["id", "type", "resnr", "residue", "atom", "cgnr", "charge"])
+    i = 0
+    for line in section.split("\n"):
+        if len(line.split(";")[0].strip()) == 0:
+            continue
+        line = line.split(";")[0] #Only look at the uncommented part
+        line=line.split()
+        if len(line) < 6:
+            continue
+        ATOMS.loc[i] = line
+        i+=1
+    ATOMS["id"] = ATOMS["id"].astype(np.int64)
+    ATOMS["resnr"] = ATOMS["resnr"].astype(np.int64)
+        
+    section = text.split("[ bonds ]")[1].split("[ ")[0]
+    BONDS = pandas.DataFrame(columns=["i", "j", "func", "length", "fc", "comment"])
+    i = 0
+    for line in section.split("\n"):
+        if len(line.split(";")[0].strip()) == 0:
+            continue
+        line = line.split(";")[0] #Only look at the uncommented part
+        line=line.split()
+        if len(line) < 5:
+            continue
+        BONDS.loc[i] = line + [";"]
+        i+=1
+    BONDS["i"] = BONDS["i"].astype(np.int64)
+    BONDS["j"] = BONDS["j"].astype(np.int64)
+    
+    CONSTRAINTS = pandas.DataFrame(columns=["i", "j", "func", "length"])
+    if "[ constraints ]" in text:
+        section = text.split("[ constraints ]")[1].split("[ ")[0]
+        
+        i = 0
+        for line in section.split("\n"):
+            if len(line.split(";")[0].strip()) == 0:
+                continue
+            line = line.split(";")[0] #Only look at the uncommented part
+            line=line.split()
+            if len(line) < 4:
+                continue
+            CONSTRAINTS.loc[i] = line 
+            i+=1
+        CONSTRAINTS["i"] = CONSTRAINTS["i"].astype(np.int64)
+        CONSTRAINTS["j"] = CONSTRAINTS["j"].astype(np.int64)
+    
+    section = text.split("[ angles ]")[1].split("[ ")[0]
+    ANGLES = pandas.DataFrame(columns=["i", "j", "k", "func", "angle", "fc"])
+    i = 0
+    for line in section.split("\n"):
+        if len(line.split(";")[0].strip()) == 0:
+            continue
+        line = line.split(";")[0] #Only look at the uncommented part
+        line=line.split()
+        if len(line) < 5:
+            continue
+        ANGLES.loc[i] = line
+        i+=1
+    ANGLES["i"] = ANGLES["i"].astype(np.int64)
+    ANGLES["j"] = ANGLES["j"].astype(np.int64)
+    ANGLES["k"] = ANGLES["k"].astype(np.int64)
+    
+    exclusions = pandas.DataFrame(columns=[0,1,2,3])
+    if "[ exclusions ]" in text:
+        section = text.split("[ exclusions ]")[1].split("[ ")[0]
+        i = 0
+        for line in section.split("\n"):
+            if len(line.split(";")[0].strip()) == 0:
+                continue
+            line = line.split(";")[0] #Only look at the uncommented part
+            line=line.split()
+            if len(line) < 2:
+                continue
+            for col in range(len(line)):
+                exclusions.at[i,col] = int(line[col])
+            i+=1
+
+    
+    return {"Atoms":ATOMS, "Bonds":BONDS, "Constraints": CONSTRAINTS, "Angles": ANGLES, "Exclusions": exclusions}
+```
+
+
+
+## Combine two itp files into 1 molecule
+```python
+def combine_itp(itp0, itp1):
+    L0 = itp0["Atoms"].shape[0]
+    itp1["Atoms"]["id"] += L0
+    itp1["Atoms"].index += L0
+    itp1["Atoms"]["resnr"] += itp0["Atoms"]["resnr"].max()
+    itp1["Bonds"].index += itp0["Bonds"].shape[0]
+    itp1["Bonds"]["i"] += L0
+    itp1["Bonds"]["j"] += L0
+    itp1["Constraints"].index += itp0["Constraints"].shape[0]
+    itp1["Constraints"]["i"] += L0
+    itp1["Constraints"]["j"] += L0
+    itp1["Angles"].index += itp0["Angles"].shape[0]
+    itp1["Angles"]["i"] += L0
+    itp1["Angles"]["j"] += L0
+    itp1["Angles"]["k"] += L0
+    itp1["Exclusions"].index += itp0["Exclusions"].shape[0]
+    itp1["Exclusions"][0] += L0
+    itp1["Exclusions"][1] += L0
+    itp1["Exclusions"][2] += L0
+    itp1["Exclusions"][3] += L0
+    return {"Atoms": pandas.concat((itp0["Atoms"], itp1["Atoms"])), 
+            "Bonds": pandas.concat((itp0["Bonds"], itp1["Bonds"])), 
+            "Constraints": pandas.concat((itp0["Constraints"], itp1["Constraints"])), 
+            "Angles": pandas.concat((itp0["Angles"], itp1["Angles"])),
+            "Exclusions": pandas.concat((itp0["Exclusions"], itp1["Exclusions"]))}
+
+combined = combine_itp(itp0, itp1)
+```
+
+
+## Add a bond to an ITP
+```python
+def add_bond(itp, i, j, b0, fc):
+    func=1
+    itp["Bonds"].loc[itp["Bonds"].shape[0]] = [i, j, func, b0, fc, "; Additional Bond"]
+    return itp
+x = x[x["atom"] == "SC2"]
+LYS = np.random.choice([i for i in x["id"] if i not in bonded_atoms])
+x = combined["Atoms"]
+x = x[x["type"] == "SP3"]
+HDI = np.random.choice([i for i in x["id"] if i not in bonded_atoms])
+add_bond(combined, LYS, HDI, 0.35, 5000)
+```
 
 # Other functions
 
@@ -66,14 +201,11 @@ def angle(pointA, pointB, pointC):
 x = np.array([[  -5.63164 ,      -1.44837   ,     0.00000],
     [  -4.38630    ,    2.49963   ,    -0.00000],
     [     -2.60073  ,     -1.04151   ,     0.00000]])
-if round(angle(*x), 1) != 44.3:
-    print("Angle function broken")
-    sys.exit()
-    
+assert round(angle(*x), 1) == 44.3, "Angle function broken"
 ```
 
 
-#### Calculate dihedral from 3 cartesian coordinates
+#### Calculate dihedral from 4 cartesian coordinates
 ### 
 ```python
 import numpy as np
@@ -143,6 +275,14 @@ def natural_sort(l):
     return sorted(l, key=alphanum_key)
 ```
 
+##### Replace all instances of 'original' with 'new' in file: 'fname'
+```python
+def replace_in_file2(fname, original, new):
+    content = readin(fname)
+    content = content.replace(original, new)
+    with open(fname, 'w') as outfile:
+        outfile.write(content)
+```
 # TCL
 This section to be flushed out.
 ```tcl

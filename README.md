@@ -193,6 +193,16 @@ def add_angle(itp, i, j, k, b0, fc):
     return itp
 ```
 
+## Modify the bead type and/or charge of a bead in the itp
+```python
+def mod_type(itp, i, newtype=None, charge=None):
+    index = itp["Atoms"][itp["Atoms"]["id"] == i].index[0]
+    if newtype is not None:
+        itp["Atoms"].at[index, "type"] = newtype
+    if charge is not None:
+        itp["Atoms"].at[index, "charge"] = charge
+    return itp
+```
 ## Write your dict of DataFrames to a new itp file:
 ```python
 def write_itp(itp, fname):

@@ -49,7 +49,7 @@ parsepsf
 def parse_itp(fname):
     text = readin(fname)
     
-    section = text.split("[ atoms ]")[1].split("[ bonds ]")[0]
+    section = text.split("[ atoms ]")[1].split("[")[0]
     ATOMS = pandas.DataFrame(columns=["id", "type", "resnr", "residue", "atom", "cgnr", "charge"])
     i = 0
     for line in section.split("\n"):
@@ -63,21 +63,22 @@ def parse_itp(fname):
         i+=1
     ATOMS["id"] = ATOMS["id"].astype(np.int64)
     ATOMS["resnr"] = ATOMS["resnr"].astype(np.int64)
-        
-    section = text.split("[ bonds ]")[1].split("[ ")[0]
+    
     BONDS = pandas.DataFrame(columns=["i", "j", "func", "length", "fc", "comment"])
-    i = 0
-    for line in section.split("\n"):
-        if len(line.split(";")[0].strip()) == 0:
-            continue
-        line = line.split(";")[0] #Only look at the uncommented part
-        line=line.split()
-        if len(line) < 5:
-            continue
-        BONDS.loc[i] = line + [";"]
-        i+=1
-    BONDS["i"] = BONDS["i"].astype(np.int64)
-    BONDS["j"] = BONDS["j"].astype(np.int64)
+    if "[ bonds ]" in text:
+        section = text.split("[ bonds ]")[1].split("[ ")[0]
+        i = 0
+        for line in section.split("\n"):
+            if len(line.split(";")[0].strip()) == 0:
+                continue
+            line = line.split(";")[0] #Only look at the uncommented part
+            line=line.split()
+            if len(line) < 5:
+                continue
+            BONDS.loc[i] = line + [";"]
+            i+=1
+        BONDS["i"] = BONDS["i"].astype(np.int64)
+        BONDS["j"] = BONDS["j"].astype(np.int64)
     
     CONSTRAINTS = pandas.DataFrame(columns=["i", "j", "func", "length"])
     if "[ constraints ]" in text:
@@ -96,22 +97,24 @@ def parse_itp(fname):
         CONSTRAINTS["i"] = CONSTRAINTS["i"].astype(np.int64)
         CONSTRAINTS["j"] = CONSTRAINTS["j"].astype(np.int64)
     
-    section = text.split("[ angles ]")[1].split("[ ")[0]
     ANGLES = pandas.DataFrame(columns=["i", "j", "k", "func", "angle", "fc"])
-    i = 0
-    for line in section.split("\n"):
-        if len(line.split(";")[0].strip()) == 0:
-            continue
-        line = line.split(";")[0] #Only look at the uncommented part
-        line=line.split()
-        if len(line) < 5:
-            continue
-        ANGLES.loc[i] = line
-        i+=1
-    ANGLES["i"] = ANGLES["i"].astype(np.int64)
-    ANGLES["j"] = ANGLES["j"].astype(np.int64)
-    ANGLES["k"] = ANGLES["k"].astype(np.int64)
     
+    if "[ angles ]" in text:
+        section = text.split("[ angles ]")[1].split("[ ")[0]
+        i = 0
+        for line in section.split("\n"):
+            if len(line.split(";")[0].strip()) == 0:
+                continue
+            line = line.split(";")[0] #Only look at the uncommented part
+            line=line.split()
+            if len(line) < 5:
+                continue
+            ANGLES.loc[i] = line
+            i+=1
+        ANGLES["i"] = ANGLES["i"].astype(np.int64)
+        ANGLES["j"] = ANGLES["j"].astype(np.int64)
+        ANGLES["k"] = ANGLES["k"].astype(np.int64)
+        
     exclusions = pandas.DataFrame(columns=[0,1,2,3])
     if "[ exclusions ]" in text:
         section = text.split("[ exclusions ]")[1].split("[ ")[0]
@@ -179,6 +182,44 @@ HDI = np.random.choice([i for i in x["id"] if i not in bonded_atoms])
 add_bond(combined, LYS, HDI, 0.35, 5000)
 ```
 
+## Add an angle to an ITP
+```python
+def add_angle(itp, i, j, k, b0, fc):
+    func = 2
+    print("ADD_ANGLE:", itp["Angles"])
+    itp["Angles"].loc[itp["Angles"].shape[0]] = [int(i), int(j), int(k), int(func), b0, fc]
+    for make_int in ["i", "j", "k", "func"]:
+        itp["Angles"][make_int] = itp["Angles"][make_int].astype(np.int64)
+    return itp
+```
+
+## Write your dict of DataFrames to a new itp file:
+```python
+def write_itp(itp, fname):
+    oitp = open(fname, 'w')
+    oitp.write("""; written with write_itp
+[ moleculetype ]
+; molname        nrexcl
+Combined         1
+
+""")    
+    for key in list(itp.keys()):
+        oitp.write(f"[ {key.lower()} ]\n")
+        
+        for index in itp[key].index:
+            if key.lower() != "exclusions":
+                row = itp[key].loc[index]
+                row = [str(x) for x in row]
+            else:
+                row = itp[key].loc[index].values
+                row = [str(x) for x in row]
+                row = [x for x in row if x != "nan"]
+                
+            oitp.write(" \t".join(row))
+            oitp.write("\n")            
+        oitp.write("\n")    
+    oitp.close()
+```
 # Other functions
 
 #### Calculate angle from 3 cartesian coordinates

@@ -47,7 +47,7 @@ peptideutils.charge("AKRDF")
 ```python
 sasa = np.genfromtxt("SASA.xvg", comments="@", skip_header = 14)
 timeseries, sasa = sasa[:,0], sasa[:,1]
-AP = sasa[-1] / sasa[0]
+AP = sasa[0] / sasa[1]
 ```
 
 ## Parse and ITP file into several pandas DataFrames, does not currently consider dihedrals

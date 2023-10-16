@@ -25,6 +25,18 @@ hpc.IsRunning("job name", exact = True)
 > True/False if any job in the queue has the name "job name" 
 ```
 
+### rmsd_tools
+
+Parsing the archie-west HPC queue.
+
+```python
+import rmsd_tools
+
+Test = np.random.random((10000, 18, 3))
+RMSD = rmsd_tools()
+RMSD.minimize_rotation_and_translation(Test[0], Test[i])
+```
+
 # peptideutils
 
 Some tools for working with peptides in python

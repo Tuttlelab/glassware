@@ -21,10 +21,10 @@ def rotation_matrix(axis, theta):
 
 
 mols = [read("QN.xyz")]
-mols[0].positions -= mols[0].positions.min(axis=0)
+#mols[0].positions -= mols[0].positions.min(axis=0)
 
 #axis = mols[0].positions.mean(axis=0)
-axis = [1,1,1] # Rotate around Z axis
+axis = [0,0,1] # Rotate around Z axis
 
 X, Y = [], []
 for theta in np.linspace(0., 6.3, 100):

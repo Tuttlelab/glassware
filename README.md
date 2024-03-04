@@ -248,6 +248,55 @@ Combined         1
         oitp.write("\n")    
     oitp.close()
 ```
+## Making Gromacs .ndx index files from MDAnalyis
+```python
+    def SpecialIndex(self):
+        cmd = "echo q | gmx_mpi make_ndx -f Box.gro -o index.ndx"
+        os.system(cmd)
+        original   = readin("index.ndx")
+        u          = mda.Universe("Min.gro")
+        groProtein = u.select_atoms(f"not resname {self.phospholipids} {self.OuterMembrane} NA+ CL- ION W PW TW SW H2O NA CL NA+ CL-")       ## account for break in relation between resname and peptide name
+        
+        groPOP     = u.select_atoms(f"resname {self.phospholipids}")   ## We do not want to include the outer membrane here
+        
+        print(len(groProtein))
+        cutoff = groPOP.positions[:,2].mean()
+        print("Cutoff:", cutoff)
+        TopHalf = []
+        BottomHalf = []
+        phospholipids_indices = list()
+        for bead in groProtein:
+            if bead.position[2] >= cutoff:
+                TopHalf.append(bead.id)
+            else:
+                BottomHalf.append(bead.id)
+        for bead in groPOP:
+            phospholipids_indices.append(bead.id)
+        print("TopHalf:", len(TopHalf))
+
+        print("phospholipids_indices:", len(phospholipids_indices))
+        index = open("SpecialIndex.ndx", 'w')
+        index.write(original)
+        index.write("[ TopHalf ]\n")
+        i = 0
+        for ndx in TopHalf:
+            index.write(str(ndx)+" ")
+            i+=1
+            if i % 15==0:
+                index.write("\n")
+        #a="""
+        index.write("\n[ Bilayer ]\n")
+        i = 0
+        for ndx in phospholipids_indices:
+            index.write(str(ndx)+" ")
+            i+=1
+            if i % 15==0:
+                index.write("\n")
+        #"""
+        index.write("\n\n")
+        index.close()
+```
+
 # Other functions
 
 #### Calculate angle from 3 cartesian coordinates

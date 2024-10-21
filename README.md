@@ -393,6 +393,31 @@ def natural_sort(l):
     return sorted(l, key=alphanum_key)
 ```
 
+Get a slice of an MDAnalysis universe trajectory and have it as a real new trajectory (not a view or a pointer or anything like that)
+
+```python
+# Load the trajectory
+u = mda.Universe(args.topology, args.trajectory)
+
+if args.last is None:
+    args.last = len(u.trajectory)
+print("Cropping the trajectory")
+indices = np.linspace(args.first, args.last-1, int(len(u.trajectory)/args.skip)).astype(np.int64)
+print(indices)
+# Create a new Universe with the selected frames
+new_u = mda.Universe(args.topology)
+# Set the new trajectory
+print(dir(u.trajectory[indices].trajectory))
+new_u.trajectory = u.trajectory[indices].trajectory
+del u
+u = new_u
+
+selection_string = args.selection
+peptides = u.select_atoms(selection_string)
+n_frames = len(u.trajectory)
+print(f"Total frames in trajectory: {n_frames}")
+```
+
 ##### Replace all instances of 'original' with 'new' in file: 'fname'
 ```python
 def replace_in_file2(fname, original, new):

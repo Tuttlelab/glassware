@@ -396,21 +396,19 @@ def natural_sort(l):
 Get a slice of an MDAnalysis universe trajectory and have it as a real new trajectory (not a view or a pointer or anything like that)
 
 ```python
-# Load the trajectory
-u = mda.Universe(args.topology, args.trajectory)
-
-if args.last is None:
-    args.last = len(u.trajectory)
 print("Cropping the trajectory")
+protein = u.select_atoms("protein")
 indices = np.linspace(args.first, args.last-1, int(len(u.trajectory)/args.skip)).astype(np.int64)
-print(indices)
-# Create a new Universe with the selected frames
-new_u = mda.Universe(args.topology)
-# Set the new trajectory
-print(dir(u.trajectory[indices].trajectory))
-new_u.trajectory = u.trajectory[indices].trajectory
-del u
-u = new_u
+with mda.Writer("protein_slice.gro", protein.n_atoms) as W:
+    W.write(protein)
+with mda.Writer("protein_slice.xtc", protein.n_atoms) as W:
+    for ts in u.trajectory[indices]:
+        W.write(protein)
+u = mda.Universe("protein_slice.gro", "protein_slice.xtc")
+
+
+print(len(u.trajectory), "frames remaining")
+
 
 selection_string = args.selection
 peptides = u.select_atoms(selection_string)
